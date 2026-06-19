@@ -144,3 +144,70 @@ void freeList(Task **tail){
         *tail = NULL;
     }
 }
+
+void editTask(Task *tail, int task_id){
+    Task *temp = tail->next;
+    int found = 0;
+    do{
+        if(temp->task_id == task_id){
+            found = !found;
+            break;
+        }
+        temp = temp->next;
+    } while(temp != tail->next);
+
+    if(!found){
+        printf("Task mentioned was not found. Sorry!");
+    }
+    else{
+        while(found){
+            int choice;
+            printf("What would you like to change about %s?\n", temp->name);
+            printf("1. Change task Name.\n");
+            printf("2. Update task Priority.\n");
+            printf("3. Update task Completion.\n");
+            printf("4. Exit Task Editing\n");
+            printf("Your Choice: ");
+            char buff1[10];
+            fgets(buff1, sizeof(buff1), stdin);
+            choice = atoi(buff1);
+            
+            switch(choice){
+                case 1:
+                    printf("What would you like the new task name to be: ");
+                    char name[100];
+                    fgets(name, sizeof(name), stdin);
+                    name[strcspn(name, "\n")] = '\0';
+                    free(temp->name);
+                    temp->name = strdup(name);
+                    printf("Edit Successful!");
+                    break;
+                case 2:
+                    printf("What should the new Priority be? (1 = LOW, 2 = MEDIUM, 3 = HIGH): ");
+                    char buff2[10];
+                    fgets(buff2, sizeof(buff2), stdin);
+                    int priority = atoi(buff2);
+                    if(priority != LOW && priority != MEDIUM && priority != HIGH){
+                        printf("Wrong priority, try again.");
+                        break;
+                    }
+                    temp->priority = priority;
+                    printf("Priority updated!");
+                    break;
+                case 3:
+                    completeTask(tail, temp->task_id);
+                    printf("Toggled Task Completion!");
+                    break;
+                case 4:
+                    printf("Exitting task editing...");
+                    found = !found;
+                    break;
+                default: 
+                    printf("Wrong choice, try again.");
+                    break;
+            }
+            printf("\n");
+        }
+    }
+    
+}
