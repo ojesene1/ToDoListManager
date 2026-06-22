@@ -1,12 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-typedef enum {
-    LOW = 1,
-    MEDIUM = 2,
-    HIGH = 3
-} Priority; 
+#include "tasks.h" 
 
 typedef struct Task{
     char *name;
@@ -14,9 +9,13 @@ typedef struct Task{
     int priority;
     int task_id;
     struct Task *next;
+
+    //Date
+    int day, month, year;
 } Task;
 
-int addTask(Task **tail, char *task_name, int task_id, int priority){
+
+int addTask(TaskManager *manager, char *task_name, int priority, int day, int month, int year){
     Task *newTask = malloc(sizeof(Task));
     if(newTask == NULL || task_name == NULL){
         printf("Add Task Failure.\n");
@@ -25,114 +24,125 @@ int addTask(Task **tail, char *task_name, int task_id, int priority){
     newTask->name = strdup(task_name);
     newTask->complete = 0;
     newTask->priority = priority;
-    newTask->task_id = task_id;
+    newTask->task_id = manager->next_id;
+    manager->next_id++;
+    manager->size++;
+
+    newTask->day = day;
+    newTask->month = month;
+    newTask->year = year; 
     newTask->next = newTask ;
 
-    if (*tail == NULL){
-        *tail = newTask;
+    if (manager->tail == NULL){
+        manager->tail = newTask;
         return 1;
     }
 
     // Circular tail pointer makes insertion O(1) complexity.
-    newTask->next = (*tail)->next;
-    (*tail)->next = newTask;    //updates the tail pointer to point to the newest node (task id start - 1 2 3 4 - task id tail)
-    *tail = newTask; //tail should be the last node in the list
+    newTask->next = manager->tail->next;
+    manager->tail->next = newTask;    //updates the tail pointer to point to the newest node (task id start - 1 2 3 4 - task id tail)
+    manager->tail = newTask; //tail should be the last node in the list
     return 1;
 
 }
 
-int deleteTask(Task **tail, int del_task_id){
-    if(*tail == NULL){
+int deleteTask(TaskManager *manager, int del_task_id){
+    if (manager->tail == NULL){
         printf("There are no list items to delete.\n");
         return 0;
     }
-    Task *temp = (*tail)->next;
-    Task *prev = *tail;
+    Task *temp = manager->tail->next;
+    Task *prev = manager->tail;
     do{
         if(temp->task_id == del_task_id){
             prev->next = temp->next;
 
-            if(temp == *tail && temp->next == temp){ // Need extra case for when the tail deletion is the last node in the list
+            if(temp == manager->tail && temp->next == temp){ // Need extra case for when the tail deletion is the last node in the list
                 free(temp->name);
                 free(temp);
-                *tail = NULL;   // Sets the tail ptr to null
+                manager->tail = NULL;   // Sets the tail ptr to null
                 return 1;
             }
-            if (temp == *tail) {
-                *tail = prev;
+            if (temp == manager->tail) {
+                manager->tail = prev;
             }
             
             free(temp->name); //needed because we allocated name earlier with strdup()
             free(temp);
+            manager->size--;
             return 1;
         }
         prev = prev->next;
         temp = temp->next;
-    }while(temp != (*tail)->next);
+    }while(temp != manager->tail->next);
+
     return 0;
 }
 
-int completeTask(Task *tail, int complete_task_id){
-    if(tail == NULL){
+int completeTask(TaskManager *manager, int complete_task_id){
+    if(manager->tail == NULL){
         printf("There are no list items to complete.\n");
         return 0;
     }
-    Task *temp = tail->next;
+    Task *temp = manager->tail->next;
     do{
         if(temp->task_id == complete_task_id){
             temp->complete = !temp->complete;
             return 1;
         }
         temp = temp->next;
-    }while(temp != tail->next);
+    }while(temp != manager->tail->next);
     return 0;
 }
 
-int printList(Task *tail){
-    if(tail == NULL){
+int printList(TaskManager *manager){
+    if(manager->tail == NULL){
         printf("To-Do List is EMPTY!\nGO FIND SOMETHING TO DO!!\n");
         return 0;
     }
 
-    Task *temp = tail->next;
+    Task *temp = manager->tail->next;
 
     printf("\n== HIGH PRIORITY TASKS ==");
     printf("\n------------------------------");
     do{
         if(temp->priority == HIGH){ //PRINTING THE HIGH PRIO TASKS
-            printf("\n[%d] %s [%s]", temp->task_id, temp->name, (temp->complete ? "DONE" : " ")); 
+            printf("\n[%d] %s [%s]", temp->task_id, temp->name, (temp->complete ? "DONE" : " "));
+            printf("\nDue: %d/%d/%d", temp->day, temp->month, temp->year);
         }
         temp = temp->next;
-    } while(temp != tail->next);
+    } while(temp != manager->tail->next);
 
     printf("\n\n== MEDIUM PRIORITY TASKS ==");
     printf("\n------------------------------");
     do{
         if(temp->priority == MEDIUM){ //PRINTING THE MED PRIO TASKS
-            printf("\n[%d] %s [%s]", temp->task_id, temp->name, (temp->complete ? "DONE" : " ")); 
+            printf("\n[%d] %s [%s]", temp->task_id, temp->name, (temp->complete ? "DONE" : " "));
+            printf("\nDue: %d/%d/%d", temp->day, temp->month, temp->year);
         }
         temp = temp->next;
-    } while(temp != tail->next);
+    } while(temp != manager->tail->next);
 
     printf("\n\n== LOW PRIORITY TASKS ==");
     printf("\n------------------------------");
     do{
         if(temp->priority == LOW){ //PRINTING THE LOW PRIO TASKS
-            printf("\n[%d] %s [%s]", temp->task_id, temp->name, (temp->complete ? "DONE" : " ")); 
+            printf("\n[%d] %s [%s]", temp->task_id, temp->name, (temp->complete ? "DONE" : " "));
+            printf("\nDue: %d/%d/%d", temp->day, temp->month, temp->year);
         }
         temp = temp->next;
-    } while(temp != tail->next);
+    } while(temp != manager->tail->next);
     return 1;
 }
 
-void freeList(Task **tail){
-    if(*tail == NULL){
+void freeList(TaskManager *manager){
+    if(manager->tail == NULL){
         printf("List already Empty Gang...\n");
     }
     else{
         Task *cur;
-        Task *prev = (*tail)->next;
-        Task *head = (*tail)->next; //holds the head ptr so we make sure this address is cleared.
+        Task *prev = manager->tail->next;
+        Task *head = manager->tail->next; //holds the head ptr so we make sure this address is cleared.
 
         do{
             cur = prev->next;
@@ -141,16 +151,16 @@ void freeList(Task **tail){
             prev = cur;
         } while(cur != head);
 
-        *tail = NULL;
+        manager->tail = NULL;
     }
 }
 
-void editTask(Task *tail, int task_id){
-    if(tail == NULL){
+void editTask(TaskManager *manager, int task_id){
+    if(manager->tail == NULL){
         printf("List is empty.\n");
     }
     else{
-        Task *temp = tail->next;
+        Task *temp = manager->tail->next;
         int found = 0;
         do{
             if(temp->task_id == task_id){
@@ -158,7 +168,7 @@ void editTask(Task *tail, int task_id){
                 break;
             }
             temp = temp->next;
-        } while(temp != tail->next);
+        } while(temp != manager->tail->next);
 
         if(!found){
             printf("Task mentioned was not found. Sorry!");
@@ -170,7 +180,8 @@ void editTask(Task *tail, int task_id){
                 printf("1. Change task Name.\n");
                 printf("2. Update task Priority.\n");
                 printf("3. Update task Completion.\n");
-                printf("4. Exit Task Editing\n");
+                printf("4. Update task Due Date\n");
+                printf("5. Exit Task Editing\n");
                 printf("Your Choice: ");
                 char buff1[10];
                 fgets(buff1, sizeof(buff1), stdin);
@@ -201,11 +212,28 @@ void editTask(Task *tail, int task_id){
                         break;
 
                     case 3: //TOGGLE TASK COMPLETION
-                        completeTask(tail, temp->task_id);
+                        completeTask(manager, temp->task_id);
                         printf("Toggled Task Completion!");
                         break;
+                    
+                    case 4:
+                        printf("Date: ");
+                        char buff3[10];
+                        fgets(buff3, sizeof(buff3), stdin);
+                        int day = atoi(buff3);
+                        printf("Month: ");
+                        char buff4[10];
+                        fgets(buff4, sizeof(buff4), stdin);
+                        int month = atoi(buff4);
+                        printf("Year: ");
+                        char buff5[10];
+                        fgets(buff5, sizeof(buff5), stdin);
+                        int year = atoi(buff5);
+                        temp->day = day, temp->month = month, temp->year = year;
+                        printf("The new task date is %d/%d/%d.", temp->day, temp->month, temp->year);
+                        break;
 
-                    case 4: //EXIT TASK EDITING
+                    case 5: //EXIT TASK EDITING
                         printf("Exitting task editing...");
                         found = !found;
                         break;
@@ -218,5 +246,40 @@ void editTask(Task *tail, int task_id){
             }
         }
     }
-    
+}
+
+void searchTaskByName(TaskManager *manager, char* task_name){
+    if (manager->tail == NULL){
+        printf("\nList is still empty G.");
+        return;
+    }
+    Task *temp = manager->tail->next;
+    do{
+        if(strcmp(task_name, temp->name) == 0){
+            printf("\nFound it!");
+            printf("\n[%d] %s [%s]", temp->task_id, temp->name, (temp->complete ? "DONE" : " "));
+            printf("\nDue: %d/%d/%d", temp->day, temp->month, temp->year);
+            return;
+        }
+        temp = temp->next;
+    } while(temp != manager->tail->next);
+    printf("\nCouldn't find the task you inputted. Try inputting the exact name structure.");
+}
+
+void searchTaskById(TaskManager *manager, int task_id){
+    if (manager->tail == NULL){
+        printf("\nList is still empty G.");
+        return;
+    }
+    Task *temp = manager->tail->next;
+    do{
+        if(task_id == temp->task_id){
+            printf("\nFound it!");
+            printf("\n[%d] %s [%s]", temp->task_id, temp->name, (temp->complete ? "DONE" : " "));
+            printf("\nDue: %d/%d/%d", temp->day, temp->month, temp->year);
+            return;
+        }
+        temp = temp->next;
+    } while(temp != manager->tail->next);
+    printf("\nCouldn't find the task you inputted. Try again.");
 }
