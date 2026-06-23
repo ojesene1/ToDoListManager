@@ -100,4 +100,4 @@ On macOS (using Homebrew):
 ```bash
 brew install valgrind
 ```
-*(Note for macOS: Valgrind can sometimes be finicky on newer Apple Silicon M1/M2/M3 chips. If it gives you trouble, developers often use leaks --atExit -- ./todomanager instead).*
+*(Note for macOS: Valgrind can sometimes be finicky on newer Apple Silicon M1/M2/M3 chips. If it gives you trouble, developers often use ```leaks --atExit -- ./todomanager``` instead).*
